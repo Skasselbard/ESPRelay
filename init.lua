@@ -1,43 +1,92 @@
-function loadModule(serverip, path, name, successCallback)
-    print("Loading module "..name)
-    local path = "http://"..serverip..path
+function getSetting(name)
+    local f = file.open("settings/"..name, "r")
+    if f == nil then
+        return nil
+    end
+    local res = f:readline()
+    f:close()
+    return res
+end
+
+function setSetting(key,value)
+    local f = file.open("settings/"..key, "w")
+    if f ~= nil then
+        f:write(value)
+        f:close()
+    else
+        print("Error while setting property")
+    end
+end
+
+function listFiles()
+    l = file.list()
+    for k,v in pairs(l) do
+        print(k,v)
+    end
+end
+
+function clearFiles()
+    local l = file.list()
+    for k,_ in pairs(l) do
+        if k ~= "init.lua" then
+            file.remove(k)
+        end
+    end
+end
+
+function cat(path)
+    local f = file.open(path, "r")
+    while true do
+        local line = f:readline()
+        if line == nil then break end
+        print(line:sub(0,-1))
+    end
+    f:close()
+end
+
+function blinkPattern(times,pattern,speed)
+    speed = speed or 1000
+    local count = 0
+    local point = 1
+    local max = pattern:len()
+    gpio.mode(4,gpio.OUTPUT)
+    gpio.write(4,1)
+    local blinkTimer = tmr.create()
+    blinkTimer:alarm(speed, tmr.ALARM_AUTO, function(t)
+        gpio.write(4,pattern:sub(point,point))
+        point = point+1
+        if point > max then
+            point = 1
+            count = count + 1
+        end
+        if count >= times then
+            t:stop()
+        end
+    end)
+end
+
+function loadFile(serverip, remotepath, localpath)
+    local fullpath = "http://"..serverip..remotepath
     local conn = net.createConnection(net.TCP, 0)
     conn:on("receive", function(sck,c)
-        local match = c:match("HTTP/1.1 %d+")
-        local code = match:sub(10,12)
+        print("received answer of length "..c:len())
+        local code = c:sub(10,12)
         if tonumber(code) ~= 200 then
-            print("Error code "..code.." while getting "..path)
+            print("Error code "..code.." while getting "..fullpath)
             return
         end
         local index = string.find(c, "\r\n\r\n")
         if index then
-            local f = file.open(name..".lua", "w")
+            local f = file.open(localpath, "w")
             f:write(string.sub(c, index+4))
             f:close()
-            successCallback(name)
+            print("Successfully loaded file from "..fullpath)
         else
             print("Received malformed HTTP response?")
         end
     end)
-    conn:on("connection", function(sck,c) conn:send("GET "..path.." HTTP/1.1\r\nHost: "..serverip.."\r\nAccept: */*\r\n\r\n") end)
+    conn:on("connection", function(sck,c) conn:send("GET "..remotepath.." HTTP/1.1\r\nHost: "..serverip.."\r\nAccept: */*\r\n\r\n") end)
     conn:connect(80, serverip)
-end
-
-function getServerOrFallback()
-    local f = file.open("server", "r")
-    local serverip = "192.168.0.15"
-    if f then
-        serverip = f:readline()
-        f:close()
-        return serverip
-    else 
-        print("Could not open file \"server\".")
-        return nil
-    end
-end
-
-function loadPostInit()
-    loadModule(getServerOrFallback(), "/nodemcu/postinit.lua", "postinit", function() dofile("postinit.lua") end)
 end
 
 -- https://github.com/nodemcu/nodemcu-firmware/blob/master/lua_examples/telnet.lua
@@ -80,8 +129,40 @@ function startServer()
     end)
 end
 
-startServer()
+function connectWifi()
+    local ssid = getSetting("wifi_ssid")
+    local pwd = getSetting("wifi_pwd")
+    if (ssid == nil) or (pwd == nil) or (ssid:len() < 1) or (pwd:len() < 1) then
+        print("Error while loading wifi settings")
+    else
+        wifi.setmode(wifi.STATION)
+        wifi.sta.autoconnect(1)
+        local cfg = {}
+        cfg.ssid = ssid
+        cfg.pwd = pwd
+        cfg.got_ip_cb = function(t)
+            print("Connected to network, received ip:", t.IP)
+            wifiTimer:stop()
+        end
+        wifi.sta.config(cfg)
+        wifi.sta.connect()
+    end
+end
 
-local mytimer = tmr.create()
-mytimer:register(3000, tmr.ALARM_SINGLE, loadPostInit)
-mytimer:start()
+wifiTimer = tmr.create()
+wifiTimer:register(10000,tmr.ALARM_AUTO,connectWifi)
+
+local initTimer = tmr.create()
+initTimer:register(3000, tmr.ALARM_SINGLE, function(t)
+    if wifi.sta.getip() == nil then
+        connectWifi()
+        wifiTimer:start()
+    end
+    startServer()
+    local sfile = file.open("start.lua", "r")
+    if sfile ~= nil then
+        node.compile("start.lua")
+        dofile("start.lc")
+    end
+end)
+initTimer:start()
