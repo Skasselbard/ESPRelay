@@ -2,3 +2,4 @@ Modules:
 bluetooth
 broadcast
 remote
+mqtt
