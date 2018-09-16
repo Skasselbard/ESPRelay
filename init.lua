@@ -18,6 +18,29 @@ function setSetting(key,value)
     end
 end
 
+function chartonum(char)
+    local r = string.find("abcdefghijklmnopqrstuvwxyz", char:lower())
+    if r == nil then r = -1 end
+    return r
+end
+
+function strcmp(s1,s2)
+    local length = s1:len()
+    if s2:len() < length then 
+        length = s2:len()
+    end
+    for i = 1,length,1 do
+        local i1 = chartonum(s1:sub(i,i))
+        local i2 = chartonum(s2:sub(i,i))
+        if i1 < i2 then
+            return true
+        elseif i1 > i2 then
+            return false
+        end
+    end
+    return s1:len() < s2:len()
+end
+
 function listFiles()
     l = file.list()
     for k,v in pairs(l) do
@@ -68,21 +91,44 @@ end
 function loadFile(serverip, remotepath, localpath)
     local fullpath = "http://"..serverip..remotepath
     local conn = net.createConnection(net.TCP, 0)
+    local contentLength = 0
     conn:on("receive", function(sck,c)
-        print("received answer of length "..c:len())
-        local code = c:sub(10,12)
-        if tonumber(code) ~= 200 then
-            print("Error code "..code.." while getting "..fullpath)
-            return
-        end
-        local index = string.find(c, "\r\n\r\n")
-        if index then
-            local f = file.open(localpath, "w")
-            f:write(string.sub(c, index+4))
-            f:close()
-            print("Successfully loaded file from "..fullpath)
+        --print("received answer of length "..c:len())
+        local httpline = c:match("HTTP/1.1 %d+")
+        local hasHeader = (httpline ~= nil)
+        if hasHeader then
+            local index = string.find(c, "\r\n\r\n")
+            if index then
+                local header = string.sub(c, 1, index-1)
+                --print("httpline", httpline)
+                local httpcode = httpline:sub(10,12)
+                if httpcode ~= "200" then
+                    print("Error: Received http code "..httpcode..".")
+                    return
+                end
+                local contentLine = header:sub(-8) --TODO: EXTREMELY BAD!!! However, matching doesn't work
+                --print("contentline", contentLine)
+                contentLength = contentLine:match("%d+")
+
+                local f = file.open(localpath, "w")
+                local content = string.sub(c, index+4)
+                contentLength = contentLength - content:len()
+                f:write(content)
+                f:close()
+                --print("remaining content length: "..contentLength)
+                if contentLength <= 0 then
+                    print("Saved full file at "..localpath)
+                    sck:close()
+                end
+            else
+                print("No separating \\r\\n between header and content found.")
+            end
         else
-            print("Received malformed HTTP response?")
+            local f = file.open(localpath, "a+")
+            f:writeline(c)
+            f:close()
+            contentLength = contentLength - c:len()
+            print("remaining content length: "..contentLength)
         end
     end)
     conn:on("connection", function(sck,c) conn:send("GET "..remotepath.." HTTP/1.1\r\nHost: "..serverip.."\r\nAccept: */*\r\n\r\n") end)
@@ -145,7 +191,7 @@ function connectWifi()
             wifiTimer:stop()
         end
         wifi.sta.config(cfg)
-        wifi.sta.connect()
+        wifi.sta.connect(function(x) print("Connected to wifi, waiting for ip...") end)
     end
 end
 
