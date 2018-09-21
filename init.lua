@@ -47,10 +47,11 @@ function strcmp(s1,s2)
 end
 
 -- Prints all files with their size
-function listFiles()
+function ls()
     l = file.list()
     for k,v in pairs(l) do
-        print(k,v)
+        local fill = string.rep(".", 32 - k:len() + 6 - tostring(v):len())
+        print(k..fill..v)
     end
 end
 
