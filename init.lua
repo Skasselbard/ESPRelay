@@ -71,7 +71,7 @@ function cat(path)
     while true do
         local line = f:readline()
         if line == nil then break end
-        print(line:sub(0,-1))
+        print(line:sub(0,-2))
     end
     f:close()
 end
@@ -138,7 +138,7 @@ function loadFile(serverip, remotepath, localpath)
             end
         else
             local f = file.open(localpath, "a+")
-            f:writeline(c)
+            f:write(c)
             f:close()
             contentLength = contentLength - c:len()
             print("remaining content length: "..contentLength)
