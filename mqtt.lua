@@ -1,4 +1,4 @@
-m = mqtt.Client("node1", 120)
+m = mqtt.Client(getSetting("mqtt_name"), 120)
 
 client = nil
 
@@ -11,12 +11,12 @@ m:on("offline", function(c)
     client = nil
 end)
 
-m:connect("192.168.0.13", 1883)
+m:connect(getSetting("mqtt_server"), 1883)
 
-tmr.alarm(3, 1000, tmr.ALARM_AUTO, function(t)
+tmr.alarm(3, 5000, tmr.ALARM_AUTO, function(t)
     if client ~= nil then
         local val = adc.read(0)
         print("read: ",val)
-        client:publish("sensors/mq135", val, 0, 0)
+        client:publish(getSetting("mqtt_topic"), val, 0, 0)
     end
 end)

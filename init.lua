@@ -1,3 +1,6 @@
+PIN_LED = 4
+
+-- Each setting is saved as a file in the "settings" pseudo-directory
 function getSetting(name)
     local f = file.open("settings/"..name, "r")
     if f == nil then
@@ -18,12 +21,14 @@ function setSetting(key,value)
     end
 end
 
+-- Return a letter's position in the alphabet
 function chartonum(char)
     local r = string.find("abcdefghijklmnopqrstuvwxyz", char:lower())
     if r == nil then r = -1 end
     return r
 end
 
+-- Utility function to compare strings
 function strcmp(s1,s2)
     local length = s1:len()
     if s2:len() < length then 
@@ -41,6 +46,7 @@ function strcmp(s1,s2)
     return s1:len() < s2:len()
 end
 
+-- Prints all files with their size
 function listFiles()
     l = file.list()
     for k,v in pairs(l) do
@@ -48,6 +54,7 @@ function listFiles()
     end
 end
 
+-- Removes all files except init.lua
 function clearFiles()
     local l = file.list()
     for k,_ in pairs(l) do
@@ -57,6 +64,7 @@ function clearFiles()
     end
 end
 
+-- Prints a file
 function cat(path)
     local f = file.open(path, "r")
     while true do
@@ -67,16 +75,18 @@ function cat(path)
     f:close()
 end
 
+-- Writes the pattern (of 0 and 1) to the led pin a specified number of times,
+-- with "speed" being the ms of each char in the pattern.
 function blinkPattern(times,pattern,speed)
     speed = speed or 1000
     local count = 0
     local point = 1
     local max = pattern:len()
-    gpio.mode(4,gpio.OUTPUT)
-    gpio.write(4,1)
+    gpio.mode(PIN_LED,gpio.OUTPUT)
+    gpio.write(PIN_LED,1)
     local blinkTimer = tmr.create()
     blinkTimer:alarm(speed, tmr.ALARM_AUTO, function(t)
-        gpio.write(4,pattern:sub(point,point))
+        gpio.write(PIN_LED,pattern:sub(point,point))
         point = point+1
         if point > max then
             point = 1
@@ -88,6 +98,8 @@ function blinkPattern(times,pattern,speed)
     end)
 end
 
+-- Loads a file per HTTP request from the specified server to the specified local path.do
+-- Ex.: 192.168.0.15/nodemcu/start.lua -> loadFile("192.168.0.15", "/nodemcu/start.lua", "foo.lua")
 function loadFile(serverip, remotepath, localpath)
     local fullpath = "http://"..serverip..remotepath
     local conn = net.createConnection(net.TCP, 0)
@@ -135,6 +147,7 @@ function loadFile(serverip, remotepath, localpath)
     conn:connect(80, serverip)
 end
 
+-- Opens a tcp server on port 2323, which can be connected to by netcat or telnet to remotely enter lua commands.
 -- https://github.com/nodemcu/nodemcu-firmware/blob/master/lua_examples/telnet.lua
 function startServer()
     if telnet_srv ~= nil then
@@ -175,6 +188,7 @@ function startServer()
     end)
 end
 
+-- Attempts to connect to the wifi specified in the settings "wifi_ssid" and "wifi_pwd"
 function connectWifi()
     local ssid = getSetting("wifi_ssid")
     local pwd = getSetting("wifi_pwd")
@@ -195,11 +209,14 @@ function connectWifi()
     end
 end
 
+-- Attempt to connect to wifi every 10s. connectWifi() automatically stops the timer if successful.
 wifiTimer = tmr.create()
 wifiTimer:register(10000,tmr.ALARM_AUTO,connectWifi)
 
+-- Gives you 3s of time before connecting to Wifi, starting the telnet server
+-- and compiling + running start.lua, where the complex initialization should be.
 local initTimer = tmr.create()
-initTimer:register(3000, tmr.ALARM_SINGLE, function(t)
+initTimer:alarm(3000, tmr.ALARM_SINGLE, function(t)
     if wifi.sta.getip() == nil then
         connectWifi()
         wifiTimer:start()
@@ -207,8 +224,13 @@ initTimer:register(3000, tmr.ALARM_SINGLE, function(t)
     startServer()
     local sfile = file.open("start.lua", "r")
     if sfile ~= nil then
+        sfile:close()
         node.compile("start.lua")
+        file.remove("start.lua")
+    end
+    local scomp = file.open("start.lc", "r")
+    if scomp ~= nil then
+        scomp:close()
         dofile("start.lc")
     end
 end)
-initTimer:start()
