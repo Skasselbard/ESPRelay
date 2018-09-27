@@ -1,7 +1,13 @@
 local mqttName = getSetting("mqtt_name")
 
 mqttClient = mqtt.Client(mqttName, 120)
-loop = require("loop")
+if file.exists("loop.lua") then
+    loop = require("loop")
+    print("Loaded loop object")
+else
+    print("Could not load loop object")
+    loop = nil
+end
 
 client = nil
 
