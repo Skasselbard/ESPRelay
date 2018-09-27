@@ -31,8 +31,10 @@ end)
 mqttClient:lwt("status/ip/"..mqttName, "offline")
 mqttClient:connect(getSetting("mqtt_server"), 1883)
 
-tmr.alarm(3, 5000, tmr.ALARM_AUTO, function(t)
-    for _,fun in pairs(loop) do
-        fun()
-    end
-end)
+if loop ~= nil then
+    tmr.alarm(3, 5000, tmr.ALARM_AUTO, function(t)
+        for _,fun in pairs(loop) do
+            fun()
+        end
+    end)
+end
