@@ -5,8 +5,8 @@ if file.exists("loop.lua") then
     loop = require("loop")
     print("Loaded loop object")
 else
-    print("Could not load loop object")
-    loop = nil
+    print("Loop object is empty")
+    loop = {}
 end
 
 client = nil
@@ -17,6 +17,7 @@ mqttClient:on("connect", function(c)
     client:publish("status/ip/"..mqttName, wifi.sta.getip(),0,0)
     client:subscribe("control/"..mqttName, 0)
     client:subscribe("control/all", 0)
+    mqttTimer:stop()
 end)
 mqttClient:on("offline", function(c)
     print("mqtt disconnected")
@@ -29,12 +30,16 @@ mqttClient:on("message", function(client, topic, message)
 end)
 
 mqttClient:lwt("status/ip/"..mqttName, "offline")
-mqttClient:connect(getSetting("mqtt_server"), 1883)
 
-if loop ~= nil then
-    tmr.alarm(3, 5000, tmr.ALARM_AUTO, function(t)
-        for _,fun in pairs(loop) do
-            fun()
-        end
-    end)
-end
+mqttTimer = tmr.create()
+mqttTimer:alarm(5000,tmr.ALARM_AUTO, function(t) 
+    print("Attempting to connect to mqtt")
+    mqttClient:connect(getSetting("mqtt_server"), 1883)
+end)
+
+loopTimer = tmr.create()
+loopTimer:alarm(5000, tmr.ALARM_AUTO, function(t)
+    for _,fun in pairs(loop) do
+        fun()
+    end
+end)
