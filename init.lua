@@ -83,6 +83,9 @@ function connectWifi()
         cfg.got_ip_cb = function(t)
             print("Connected to network, received ip:", t.IP)
             wifiTimer:stop()
+            if mqttClient ~= nil then
+                mqttClient:connect(getSetting("mqtt_server"), 1883)
+            end
         end
         wifi.sta.config(cfg)
         wifi.sta.connect(function(x) print("Connected to wifi, waiting for ip...") end)
