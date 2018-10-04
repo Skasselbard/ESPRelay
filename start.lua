@@ -1,3 +1,5 @@
+doFileSafe("utils.lua")
+
 local mqttName = getSetting("mqtt_name")
 
 mqttClient = mqtt.Client(mqttName, 120)
