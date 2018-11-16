@@ -4,14 +4,23 @@ import threading
 import sys
 import readline
 import cmd
+import time
 
 
 def executeCommand(device, baudRate, command):
     s = serial.Serial(device)
     s.baudrate = baudRate
-    line = command+"\r\n"
+    line = command+"\r\n"  # add a newline to finish the command
     s.write(line.encode())
-    s.readline()
+    time.sleep(0.1)  # wait shortly for a reaction
+    # print the answer
+    while True:
+        bytesToRead = s.inWaiting()
+        if bytesToRead == 0:
+            break
+        answer = s.read(bytesToRead).decode('ascii')
+        answer = answer[:-3]  # trim the newline and promt ('>')
+        print("answer: " + answer)
 
 
 def main():
@@ -23,6 +32,8 @@ def main():
     args = parser.parse_args()
     if args.baudRate == None:
         args.baudRate = 115200
+    print("device: " + args.device)
+    print("baudRate: " + str(args.baudRate))
 
     # run single command and exit if requested
     if args.c != None:
@@ -34,7 +45,6 @@ def main():
     s.baudrate = args.baudRate
 
     # init "console"
-
     class Console(cmd.Cmd):
         intro = 'Hi'
         prompt = '>'
