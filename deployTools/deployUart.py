@@ -6,7 +6,6 @@ import os
 def deploy(device, baudRate):
     # get project path relative from this file
     path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-    print("project path: " + path)
     os.chdir(path)
     # get all .lua files
     files = [
