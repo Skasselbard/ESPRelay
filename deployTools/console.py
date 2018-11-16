@@ -12,15 +12,16 @@ def executeCommand(device, baudRate, command):
     s.baudrate = baudRate
     line = command+"\r\n"  # add a newline to finish the command
     s.write(line.encode())
-    time.sleep(0.1)  # wait shortly for a reaction
     # print the answer
+    answer = s.readline().decode('ascii')
+    time.sleep(0.01)
     while True:
         bytesToRead = s.inWaiting()
+        answer = answer + s.read(bytesToRead).decode('ascii')
         if bytesToRead == 0:
+            answer = answer[:-3]  # trim the newline and promt ('>')
+            print("answer: " + answer)
             break
-        answer = s.read(bytesToRead).decode('ascii')
-        answer = answer[:-3]  # trim the newline and promt ('>')
-        print("answer: " + answer)
 
 
 def main():

@@ -48,8 +48,6 @@ def main(argv):
     # do work
     nodePort = 2323  # hardcoded in init.lua script
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect((ip, nodePort))
-    s.recv(1024)
     files = [
         f for f in os.listdir(path)
         if p.isfile(p.join(path, f)) and p.splitext(f)[1] == ".lua"
@@ -61,9 +59,14 @@ def main(argv):
         filepath = path+'/'+f
         print("transmitting: " + filepath)
         command = "loadFile(\""+serverIp+"\", \"/"+f+"\", \""+f+"\")\n"
+        s.connect((ip, nodePort))
         s.sendall(str.encode(command))
-        time.sleep(2)
-        s.recv(1024)
+        doCondition = True
+        while doCondition:
+            data = s.recv(1024)
+            print(data.decode('ascii'))
+            if data == -1:
+                doCondition = False
     s.close()
 
 
