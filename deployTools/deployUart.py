@@ -1,9 +1,12 @@
 import sendFile
 import argparse
 import os
+import console
 
 
 def deploy(device, baudRate):
+    # delete the current init.lua to avoid bootloops
+    console.executeCommand(device, baudRate, "file.remove(\"init.lua\")")
     # get project path relative from this file
     path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
     os.chdir(path)
