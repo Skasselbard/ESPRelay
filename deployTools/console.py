@@ -14,7 +14,7 @@ def executeCommand(device, baudRate, command):
     s.write(line.encode())
     # print the answer
     answer = s.readline().decode('ascii')
-    time.sleep(0.01)
+    time.sleep(0.01)  # wait for additional output
     while True:
         bytesToRead = s.inWaiting()
         answer = answer + s.read(bytesToRead).decode('ascii')

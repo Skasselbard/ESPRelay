@@ -9,7 +9,7 @@ def sendFile(filePath, device, baudRate):
     console.executeCommand(device, baudRate, openCommand)
     f = open(filePath)
     for line in f:
-        line = line[:-1]                    # remove \n
+        line = line.replace("\n", "")       # remove \n
         line = line.replace("\\", "\\\\")   # escape backslashes (first!)
         line = line.replace("\"", "\\\"")   # escape double quotes
         line = line.replace("\'", "\\\'")   # escape single quotes
