@@ -13,11 +13,12 @@ def executeCommand(device, baudRate, command):
     line = command+"\r\n"  # add a newline to finish the command
     s.write(line.encode())
     # print the answer
-    answer = s.readline().decode('ascii')
+    answer = s.readline().decode('ascii', 'backslashreplace')
     time.sleep(0.01)  # wait for additional output
     while True:
         bytesToRead = s.inWaiting()
-        answer = answer + s.read(bytesToRead).decode('ascii')
+        answer = answer + \
+            s.read(bytesToRead).decode('ascii', 'backslashreplace')
         if bytesToRead == 0:
             answer = answer[:-3]  # trim the newline and promt ('>')
             print("answer: " + answer)
@@ -57,7 +58,7 @@ def main():
 
     def readNode():
         while True:
-            sys.stdout.write(s.read(1).decode('ascii'))
+            sys.stdout.write(s.read(1).decode('ascii', 'backslashreplace'))
 
     # run reading thread
     readThread = threading.Thread(target=readNode)
