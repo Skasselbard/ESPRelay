@@ -2,3 +2,4 @@ settings/
 
 ESPlorer.Log*
 .vscode/*
+*__pycache__*
