@@ -23,7 +23,7 @@ blue = 0
 white = 0
 
 function sendStatus(r, g, b, w)
-    local message = "{" .. r .. "," .. g .. "," .. b .. "," .. w .. "}"
+    local message = "[" .. r .. "," .. g .. "," .. b .. "," .. w .. "]"
     if client ~= nil then
         client:publish("status/" .. location .. purpose .. mqttName, message, 0, 0)
     end
