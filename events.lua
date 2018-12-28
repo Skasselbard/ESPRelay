@@ -67,6 +67,7 @@ mqttClient:on(
     function(c)
         print("mqtt disconnected")
         client = nil
+        mqttTimer:start()
     end
 )
 
