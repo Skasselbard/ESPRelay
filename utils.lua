@@ -1,3 +1,25 @@
+-- Each setting is saved as a file in the "settings" pseudo-directory
+function getSetting(name)
+    local f = file.open("settings/"..name, "r")
+    if f == nil then
+        return nil
+    end
+    local res = f:readline()
+    f:close()
+    return res
+end
+
+function setSetting(key,value)
+    local f = file.open("settings/"..key, "w")
+    if f ~= nil then
+        f:write(value)
+        f:close()
+    else
+        print("Error while setting property")
+    end
+end
+
+
 -- Return a letter's position in the alphabet
 function chartonum(char)
     local r = string.find("abcdefghijklmnopqrstuvwxyz", char:lower())
@@ -21,78 +43,6 @@ function strcmp(s1,s2)
         end
     end
     return s1:len() < s2:len()
-end
-
--- Writes the pattern (of 0 and 1) to the led pin a specified number of times,
--- with "speed" being the ms of each char in the pattern.
-function blinkPattern(times,pattern,speed)
-    speed = speed or 250
-    local count = 0
-    local point = 1
-    local max = pattern:len()
-    gpio.mode(PIN_LED,gpio.OUTPUT)
-    gpio.write(PIN_LED,1)
-    local blinkTimer = tmr.create()
-    blinkTimer:alarm(speed, tmr.ALARM_AUTO, function(t)
-        gpio.write(PIN_LED,pattern:sub(point,point))
-        point = point+1
-        if point > max then
-            point = 1
-            count = count + 1
-        end
-        if count >= times then
-            t:stop()
-        end
-    end)
-end
-
--- Loads a file per HTTP request from the specified server to the specified local path.do
--- Ex.: 192.168.0.15/nodemcu/start.lua -> loadFile("192.168.0.15", "/nodemcu/start.lua", "foo.lua")
-function loadFile(serverip, remotepath, localpath)
-    local fullpath = "http://"..serverip..remotepath
-    local conn = net.createConnection(net.TCP, 0)
-    local contentLength = 0
-    conn:on("receive", function(sck,c)
-        --print("received answer of length "..c:len())
-        local httpline = c:match("HTTP/1.1 %d+")
-        local hasHeader = (httpline ~= nil)
-        if hasHeader then
-            local index = string.find(c, "\r\n\r\n")
-            if index then
-                local header = string.sub(c, 1, index-1)
-                --print("httpline", httpline)
-                local httpcode = httpline:sub(10,12)
-                if httpcode ~= "200" then
-                    print("Error: Received http code "..httpcode..".")
-                    return
-                end
-                local contentLine = header:sub(-8) --TODO: EXTREMELY BAD!!! However, matching doesn't work
-                --print("contentline", contentLine)
-                contentLength = contentLine:match("%d+")
-
-                local f = file.open(localpath, "w")
-                local content = string.sub(c, index+4)
-                contentLength = contentLength - content:len()
-                f:write(content)
-                f:close()
-                --print("remaining content length: "..contentLength)
-                if contentLength <= 0 then
-                    print("Saved full file at "..localpath)
-                    sck:close()
-                end
-            else
-                print("No separating \\r\\n between header and content found.")
-            end
-        else
-            local f = file.open(localpath, "a+")
-            f:write(c)
-            f:close()
-            contentLength = contentLength - c:len()
-            print("remaining content length: "..contentLength)
-        end
-    end)
-    conn:on("connection", function(sck,c) conn:send("GET "..remotepath.." HTTP/1.1\r\nHost: "..serverip.."\r\nAccept: */*\r\n\r\n") end)
-    conn:connect(80, serverip)
 end
 
 function sort(obj)

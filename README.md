@@ -1,3 +1,5 @@
+[NodeMCU Docu](https://nodemcu.readthedocs.io/en/release/)
+
 Extend the loop.lua and the events.lua to add your program logic
 
 Look at the deploy tools (python3) to get your scripts to the nodeMcu. There are scripts for configuration and remote command execution

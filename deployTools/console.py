@@ -1,4 +1,4 @@
-import serial
+import serial  # pyserial
 import argparse
 import threading
 import sys
@@ -26,6 +26,7 @@ def executeCommand(device, baudRate, command):
 
 
 def main():
+    # Example: ``sudo python3 deployTools/console.py /dev/ttyUSB0```
     # parse arguments
     parser = argparse.ArgumentParser()
     parser.add_argument("device", help="UART target device")
